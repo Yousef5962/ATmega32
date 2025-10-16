@@ -1,0 +1,51 @@
+import serial
+import threading
+
+# -----------------------------
+# إعدادات الاتصال
+# -----------------------------
+PORT = "COM7"     # غيّرها حسب المنفذ اللي عليه الأردوينو (مثلاً COM4 أو /dev/ttyACM0)
+BAUD = 9600       # نفس البودريت الموجود في كود الأردوينو
+
+# -----------------------------
+# دالة قراءة البيانات من الأردوينو
+# -----------------------------
+def read_from_arduino(ser):
+    while True:
+        try:
+            if ser.in_waiting > 0:
+                data = ser.readline().decode('utf-8', errors='replace').strip()
+                if data:
+                    print(f">> {data}")
+        except:
+            break
+
+# -----------------------------
+# البرنامج الرئيسي
+# -----------------------------
+try:
+    ser = serial.Serial(PORT, BAUD, timeout=0.5)
+    print(f"[Connected to {PORT} @ {BAUD}]")
+    print("اكتب 0 أو 1 واضغط Enter (Ctrl+C للخروج)")
+    print("---------------------------------------")
+
+    # تشغيل ثريد لقراءة بيانات الأردوينو
+    t = threading.Thread(target=read_from_arduino, args=(ser,))
+    t.daemon = True
+    t.start()
+
+    # حلقة الإدخال من المستخدم
+    while True:
+        cmd = input()
+        if cmd.strip() != "":
+            ser.write((cmd.strip() + '\n').encode())
+
+except KeyboardInterrupt:
+    print("\n[Exited by user]")
+except Exception as e:
+    print(f"[Error] {e}")
+finally:
+    try:
+        ser.close()
+    except:
+        pass
